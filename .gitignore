@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+
+# dont push secrets
+.env
+
+db.sqlite3
+*.log
+media/
+.DS_Store
+.vscode/
