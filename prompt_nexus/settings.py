@@ -1,15 +1,22 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
 
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# ✅ SECRET KEY
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-key')
 
+
+# ✅ DEBUG
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
+
+# ✅ ALLOWED HOSTS
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 
@@ -42,10 +49,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'prompt_nexus.urls'
 
-WSGI_APPLICATION = 'prompt_nexus.wsgi.application'
 
-
-# ✅ TEMPLATES
+# ✅ TEMPLATES (required for admin)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -63,12 +68,14 @@ TEMPLATES = [
 ]
 
 
-# ✅ DATABASE (Render PostgreSQL via DATABASE_URL)
-import dj_database_url
+WSGI_APPLICATION = 'prompt_nexus.wsgi.application'
 
+
+# ✅ DATABASE (SAFE FOR RENDER + LOCAL)
 DATABASES = {
-    'default': dj_database_url.parse(
-        os.getenv("DATABASE_URL")
+    'default': dj_database_url.config(
+        default='sqlite:///db.sqlite3',
+        conn_max_age=600
     )
 }
 
@@ -86,9 +93,11 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 
+# ✅ DEFAULT FIELD
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+# ✅ TIME & LANGUAGE
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_TZ = True
