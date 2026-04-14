@@ -101,3 +101,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_TZ = True
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
