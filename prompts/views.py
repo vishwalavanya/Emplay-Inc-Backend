@@ -1,27 +1,38 @@
 import json
-import os
-import redis
-
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Prompt
+import redis
+from django.conf import settings
 
-
-# ✅ CONNECT REDIS
-redis_client = None
+# Redis connection
 try:
-    redis_url = os.getenv("REDIS_URL")
-    if redis_url:
-        redis_client = redis.from_url(redis_url)
-except Exception as e:
-    print("Redis connection failed:", e)
+    redis_client = redis.from_url(settings.REDIS_URL)
+except:
+    redis_client = None
 
 
 @csrf_exempt
 def prompts_handler(request):
     if request.method == "GET":
         prompts = Prompt.objects.all()
-        data = [p.to_dict() for p in prompts]
+        data = []
+
+        for p in prompts:
+            view_count = 0
+
+            # 🔥 GET FROM REDIS
+            if redis_client:
+                try:
+                    view_count = int(redis_client.get(f"prompt:{p.id}:views") or 0)
+                except:
+                    view_count = 0
+
+            item = p.to_dict()
+            item["view_count"] = view_count   # ✅ ADD THIS
+
+            data.append(item)
+
         return JsonResponse(data, safe=False)
 
     elif request.method == "POST":
@@ -33,7 +44,6 @@ def prompts_handler(request):
             complexity = data.get("complexity")
             tags = data.get("tags", [])
 
-            # validations
             if not title or len(title) < 3:
                 return JsonResponse({"error": "Title too short"}, status=400)
 
@@ -63,16 +73,13 @@ def get_prompt_detail(request, id):
     try:
         prompt = Prompt.objects.get(id=id)
 
-        # ✅ REDIS VIEW COUNT LOGIC
-        view_count = 1
+        view_count = 0
 
         if redis_client:
-            key = f"prompt:{id}:views"
-            view_count = redis_client.incr(key)
-        else:
-            # fallback
-            view_count = getattr(prompt, "_view_count", 0) + 1
-            prompt._view_count = view_count
+            try:
+                view_count = redis_client.incr(f"prompt:{id}:views")
+            except:
+                view_count = 0
 
         return JsonResponse(prompt.to_dict(view_count=view_count))
 
