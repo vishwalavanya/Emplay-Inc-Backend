@@ -1,8 +1,20 @@
 import json
+import os
+import redis
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Prompt
-from .redis_client import r   # ✅ REDIS IMPORT
+
+
+# ✅ CONNECT REDIS
+redis_client = None
+try:
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        redis_client = redis.from_url(redis_url)
+except Exception as e:
+    print("Redis connection failed:", e)
 
 
 @csrf_exempt
@@ -21,7 +33,7 @@ def prompts_handler(request):
             complexity = data.get("complexity")
             tags = data.get("tags", [])
 
-            # ✅ validations
+            # validations
             if not title or len(title) < 3:
                 return JsonResponse({"error": "Title too short"}, status=400)
 
@@ -47,17 +59,20 @@ def prompts_handler(request):
             return JsonResponse({"error": str(e)}, status=500)
 
 
-# ✅ REDIS VIEW COUNT IMPLEMENTATION
 def get_prompt_detail(request, id):
     try:
         prompt = Prompt.objects.get(id=id)
 
-        key = f"prompt:{id}:views"
+        # ✅ REDIS VIEW COUNT LOGIC
+        view_count = 1
 
-        try:
-            view_count = r.incr(key)   # 🔥 Redis increment
-        except Exception:
-            view_count = 1  # fallback if Redis not available
+        if redis_client:
+            key = f"prompt:{id}:views"
+            view_count = redis_client.incr(key)
+        else:
+            # fallback
+            view_count = getattr(prompt, "_view_count", 0) + 1
+            prompt._view_count = view_count
 
         return JsonResponse(prompt.to_dict(view_count=view_count))
 
