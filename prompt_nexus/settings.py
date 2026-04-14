@@ -7,20 +7,12 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# ✅ SECRET KEY
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-key')
 
-
-# ✅ DEBUG
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-
-# ✅ ALLOWED HOSTS
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
-
-# ✅ INSTALLED APPS
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -33,11 +25,8 @@ INSTALLED_APPS = [
     'prompts',
 ]
 
-
-# ✅ MIDDLEWARE
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -46,11 +35,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
 ]
 
-
 ROOT_URLCONF = 'prompt_nexus.urls'
 
-
-# ✅ TEMPLATES (required for admin)
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -67,11 +53,8 @@ TEMPLATES = [
     },
 ]
 
-
 WSGI_APPLICATION = 'prompt_nexus.wsgi.application'
 
-
-# ✅ DATABASE (SAFE FOR RENDER + LOCAL)
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///db.sqlite3',
@@ -79,27 +62,16 @@ DATABASES = {
     )
 }
 
+# ✅ REDIS CONFIG (single clean definition)
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-# ✅ REDIS (optional)
-REDIS_URL = os.getenv('REDIS_URL', '')
-
-
-# ✅ CORS
 CORS_ALLOW_ALL_ORIGINS = True
 
-
-# ✅ STATIC FILES (important for production)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
-# ✅ DEFAULT FIELD
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# ✅ TIME & LANGUAGE
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_TZ = True
-
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
