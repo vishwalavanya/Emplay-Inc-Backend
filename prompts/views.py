@@ -1,35 +1,16 @@
 import json
-import redis
-import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from dotenv import load_dotenv
 from .models import Prompt
 
-load_dotenv()
 
-# ✅ Redis connection (safe)
-try:
-    r = redis.Redis(
-        host="localhost",
-        port=6379,
-        decode_responses=True
-    )
-    r.ping()
-except:
-    r = None
-
-
-# ✅ GET + POST handler
 @csrf_exempt
 def prompts_handler(request):
-
-    # 🔹 GET → list all prompts
     if request.method == "GET":
-        prompts = list(Prompt.objects.values())
-        return JsonResponse(prompts, safe=False)
+        prompts = Prompt.objects.all()
+        data = [p.to_dict() for p in prompts]
+        return JsonResponse(data, safe=False)
 
-    # 🔹 POST → create prompt
     elif request.method == "POST":
         try:
             data = json.loads(request.body)
@@ -37,53 +18,44 @@ def prompts_handler(request):
             title = data.get("title")
             content = data.get("content")
             complexity = data.get("complexity")
+            tags = data.get("tags", [])   # ✅ IMPORTANT
 
-            # ✅ validation
+            # validations
             if not title or len(title) < 3:
-                return JsonResponse({"error": "Title must be at least 3 chars"}, status=400)
+                return JsonResponse({"error": "Title too short"}, status=400)
 
-            if not content or len(content) < 20:
-                return JsonResponse({"error": "Content must be at least 20 chars"}, status=400)
+            if not content or len(content) < 10:
+                return JsonResponse({"error": "Content too short"}, status=400)
 
             if not (1 <= int(complexity) <= 10):
-                return JsonResponse({"error": "Complexity must be 1-10"}, status=400)
+                return JsonResponse({"error": "Invalid complexity"}, status=400)
 
+            # ✅ SAVE TAGS HERE
             prompt = Prompt.objects.create(
                 title=title,
                 content=content,
-                complexity=complexity
+                complexity=complexity,
+                tags=tags
             )
 
             return JsonResponse({
                 "message": "Prompt created",
-                "id": prompt.id
+                "id": str(prompt.id)
             })
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
 
-# ✅ GET single prompt (with Redis view count)
 def get_prompt_detail(request, id):
     try:
         prompt = Prompt.objects.get(id=id)
 
-        # Redis key
-        key = f"prompt:{id}:views"
+        # simple view count logic
+        view_count = getattr(prompt, "_view_count", 0) + 1
+        prompt._view_count = view_count
 
-        if r:
-            views = r.incr(key)
-        else:
-            views = 1  # fallback if Redis not running
-
-        return JsonResponse({
-            "id": prompt.id,
-            "title": prompt.title,
-            "content": prompt.content,
-            "complexity": prompt.complexity,
-            "created_at": prompt.created_at,
-            "view_count": views
-        })
+        return JsonResponse(prompt.to_dict(view_count=view_count))
 
     except Prompt.DoesNotExist:
         return JsonResponse({"error": "Not found"}, status=404)
